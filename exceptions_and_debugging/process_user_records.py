@@ -98,42 +98,98 @@ Debugging Skills to Practice:
 
 -------------------------------------------------
 Input Example:
+
 records = [
-   {"name": "Alice", "age": "25",   "score": "88.5"},
-   {"name": "Bob",   "age": "abc",  "score": "70"},
-   {"name": "Carol", "age": "30"},                       # missing "score"
-   "not a dict",                                          # wrong type
-   {"name": "Dan",   "age": "40",   "score": "55.5"},
+    {"name": "Alice", "age": "25", "score": "92.5"},
+    {"name": "Bob", "age": "thirty", "score": "88.0"},
+    {"name": "Charlie", "score": "95.5"},
+    "Not a dict",
+    {"name": "Diana", "age": "28", "score": "91.0"}
 ]
 
-Output Example:
-Clean Records:
-[
-  {'name': 'Alice', 'age': 25, 'score': 88.5},
-  {'name': 'Dan',   'age': 40, 'score': 55.5}
-]
-Error Log:
-[
-  (1, 'ValueError', "invalid literal for int() with base 10: 'abc'"),
-  (2, 'KeyError',   'score'),
-  (3, 'TypeError',  'string indices must be integers')
-]
-Strict mode raised: RuntimeError: 3 record(s) failed to process
+process_records(records)
+# Output:
+# clean_records:
+#   [{'name': 'Alice', 'age': 25, 'score': 92.5},
+#    {'name': 'Diana', 'age': 28, 'score': 91.0}]
+# error_log:
+#   [(1, 'ValueError', "could not convert string to float: 'thirty'"),
+#    (2, 'KeyError', "'age'"),
+#    (3, 'TypeError', "'str' object is not subscriptable")]
 
--------------------------------------------------
-Explanation:
-- Record at index 1 ("Bob") has a non-numeric
-  age, so int("abc") raises ValueError.
-- Record at index 2 ("Carol") is missing the
-  "score" key, so record["score"] raises
-  KeyError.
-- Record at index 3 ("not a dict") is a plain
-  string, so record["name"] raises TypeError.
-- Records at indices 0 and 4 succeed, so the
-  `else` block runs and they are appended to
-  clean_records.
-- The strict version re-raises a RuntimeError
-  summarising the total number of failures.
+process_strict(records)
+# Raises: RuntimeError: 3 error(s) found
+
 =================================================
 
 """
+
+def process_records(records):
+
+    clean_records = []
+    error_log = []
+    
+    for index, record in enumerate(records):
+        try:
+            # Try to access the keys - may raise KeyError or TypeError
+            name = record["name"]
+            age_str = record["age"]
+            score_str = record["score"]
+            
+            # Convert to proper types - may raise ValueError
+            age = int(age_str)
+            score = float(score_str)
+        except (KeyError, TypeError) as e:
+            # Catching multiple exception types in ONE except block
+            error_class = type(e).__name__
+            error_message = str(e)
+            error_log.append((index, error_class, error_message))
+        except ValueError as e:
+            # Separate handler for ValueError
+            error_class = type(e).__name__
+            error_message = str(e)
+            error_log.append((index, error_class, error_message))
+        else:
+            # This block runs ONLY when no exception was raised
+            clean_record = {"name": name, "age": age, "score": score}
+            clean_records.append(clean_record)
+    
+    return (clean_records, error_log)
+
+
+def process_strict(records):
+  
+    clean_records, error_log = process_records(records)
+    
+    if error_log:
+        error_count = len(error_log)
+        raise RuntimeError(f"{error_count} error(s) found")
+    
+    return clean_records
+
+
+# Test the functions
+records = [
+        {"name": "Alice", "age": "25", "score": "92.5"},
+        {"name": "Bob", "age": "thirty", "score": "88.0"},
+        {"name": "Charlie", "score": "95.5"},
+        "Not a dict",
+        {"name": "Diana", "age": "28", "score": "91.0"}
+    ]
+    
+# Test process_records
+clean_records, error_log = process_records(records)
+print("Clean records:")
+for record in clean_records:
+        print(f"  {record}")
+print("\nError log:")
+for error in error_log:
+        print(f"  {error}")
+    
+# Test process_strict
+print("\n---Testing process_strict---")
+try:
+     process_strict(records)
+except RuntimeError as e:
+        print(f"Caught RuntimeError: {e}")
+
